@@ -821,7 +821,20 @@ var _Sources = (() => {
       super(...arguments);
       this.requestManager = App.createRequestManager({
         requestsPerSecond: 3,
-        requestTimeout: 15e3
+        requestTimeout: 15e3,
+        interceptor: {
+          interceptRequest: async (request) => {
+            request.headers = {
+              ...request.headers ?? {},
+              "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+              "Referer": "https://kagane.org/"
+            };
+            return request;
+          },
+          interceptResponse: async (response) => {
+            return response;
+          }
+        }
       });
       this.parser = new KaganeParser();
     }
