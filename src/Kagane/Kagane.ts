@@ -22,7 +22,7 @@ const COMMON_HEADERS = {
 }
 
 export const KaganeInfo: SourceInfo = {
-    version: '1.1.0', // 👈 ON PASSE EN 1.1.0 POUR FORCER L'UPDATE
+    version: '1.0.9', // 👈 ON PASSE EN 1.1.0 POUR FORCER L'UPDATE
     name: 'Kagane',
     icon: 'icon.png',
     author: 'Toi',
