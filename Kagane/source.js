@@ -752,55 +752,55 @@ var _Sources = (() => {
         requestsPerSecond: 3,
         requestTimeout: 15e3
       });
-    }
-    // --- CORRECTION MAJEURE ICI ---
-    // On s'assure que la fonction est bien déclarée comme async et retourne Promise<void>
-    // C'est exactement le format standard
-    async getHomePageSections(sectionCallback) {
-      const section = App.createHomeSection({
-        id: "latest",
-        title: "Latest Updates",
-        containsMoreItems: true,
-        type: "singleRowNormal"
-      });
-      sectionCallback(section);
-      const request = App.createRequest({
-        url: `${API_URL}/series?page=1&take=20&sort=last_modified&order=desc`,
-        method: "GET",
-        headers: COMMON_HEADERS
-      });
-      try {
-        const response = await this.requestManager.schedule(request, 1);
-        let items = [];
-        const json = JSON.parse(response.data ?? "{}");
-        if (Array.isArray(json)) {
-          items = json;
-        } else if (json.data && Array.isArray(json.data)) {
-          items = json.data;
-        } else if (json.series && Array.isArray(json.series)) {
-          items = json.series;
-        }
-        const mangaList = [];
-        for (const item of items) {
-          let image = item.thumbnail || item.cover || "";
-          if (image && !image.startsWith("http")) {
-            image = `${DOMAIN}/_next/image?url=${encodeURIComponent(image)}&w=384&q=75`;
-          }
-          if (item.id) {
-            mangaList.push(App.createPartialSourceManga({
-              mangaId: String(item.id),
-              title: item.title || item.name || "Unknown",
-              image,
-              subtitle: void 0
-            }));
-          }
-        }
-        section.items = mangaList;
+      // --- CORRECTION MAJEURE ICI ---
+      // On s'assure que la fonction est bien déclarée comme async et retourne Promise<void>
+      // C'est exactement le format standard
+      this.getHomePageSections = async (sectionCallback) => {
+        const section = App.createHomeSection({
+          id: "latest",
+          title: "Latest Updates",
+          containsMoreItems: true,
+          type: "singleRowNormal"
+        });
         sectionCallback(section);
-      } catch (e) {
-        console.log(`Erreur Home: ${e}`);
-        sectionCallback(section);
-      }
+        const request = App.createRequest({
+          url: `${API_URL}/series?page=1&take=20&sort=last_modified&order=desc`,
+          method: "GET",
+          headers: COMMON_HEADERS
+        });
+        try {
+          const response = await this.requestManager.schedule(request, 1);
+          let items = [];
+          const json = JSON.parse(response.data ?? "{}");
+          if (Array.isArray(json)) {
+            items = json;
+          } else if (json.data && Array.isArray(json.data)) {
+            items = json.data;
+          } else if (json.series && Array.isArray(json.series)) {
+            items = json.series;
+          }
+          const mangaList = [];
+          for (const item of items) {
+            let image = item.thumbnail || item.cover || "";
+            if (image && !image.startsWith("http")) {
+              image = `${DOMAIN}/_next/image?url=${encodeURIComponent(image)}&w=384&q=75`;
+            }
+            if (item.id) {
+              mangaList.push(App.createPartialSourceManga({
+                mangaId: String(item.id),
+                title: item.title || item.name || "Unknown",
+                image,
+                subtitle: void 0
+              }));
+            }
+          }
+          section.items = mangaList;
+          sectionCallback(section);
+        } catch (e) {
+          console.log(`Erreur Home: ${e}`);
+          sectionCallback(section);
+        }
+      };
     }
     async getMangaDetails(mangaId) {
       const request = App.createRequest({
