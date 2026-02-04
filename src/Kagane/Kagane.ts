@@ -23,12 +23,12 @@ const COMMON_HEADERS = {
 }
 
 export const KaganeInfo: SourceInfo = {
-    version: '1.2.3', // ⬆️ Nouvelle version
+    version: '1.2.4', // ⬆️ Nouvelle version
     name: 'Kagane',
     icon: 'icon.png',
     author: 'Toi',
     authorWebsite: 'https://github.com/ruanadia',
-    description: 'Extension Hybride pour Kagane.org',
+    description: 'Extension Multi-Sections pour Kagane.org',
     contentRating: ContentRating.MATURE,
     websiteBaseURL: DOMAIN
 }
@@ -39,30 +39,40 @@ export class Kagane extends Source {
         requestTimeout: 15000,
     })
 
-    // --- FONCTION DE SECOURS (Lit le HTML si l'API échoue) ---
+    // --- SCANNER HTML AMÉLIORÉ ---
     parseHtmlList(html: string): any[] {
         const $ = cheerio.load(html)
         const items: any[] = []
         
-        // On cherche tous les liens qui mènent vers une série
-        $('a[href^="/series/"]').each((i, el) => {
-            const id = $(el).attr('href')?.split('/').pop()
-            // Titre : souvent dans un h3, h4 ou div enfant
-            const title = $(el).find('h3, h4, .title, span.font-bold').first().text().trim() || $(el).text().trim()
-            // Image : cherche la balise img
+        // On cherche plus large : series, comic, ou juste des liens dans des "cards"
+        $('a[href*="/series/"], a[href*="/comic/"]').each((i, el) => {
+            const href = $(el).attr('href')
+            const id = href?.split('/').pop()
+            
+            // Titre : On cherche partout
+            const title = $(el).find('h3, h4, .title, span, p').first().text().trim() || $(el).attr('title') || $(el).text().trim()
+            
+            // Image : On cherche l'image la plus proche
             let image = $(el).find('img').attr('src') || $(el).find('img').attr('srcset')?.split(' ')[0] || ''
             
-            // Nettoyage image (Next.js optimise souvent les urls)
-            if (image.startsWith('/')) image = DOMAIN + image
-            if (image.includes('url=')) {
-                // Décodage de l'url Next.js: /_next/image?url=%2Fcover.jpg
-                const match = image.match(/url=(.*?)&/)
-                if (match) image = decodeURIComponent(match[1])
-                if (image.startsWith('/')) image = DOMAIN + image
+            // Si pas d'image dans le lien, on regarde le parent (cas fréquent des "cards")
+            if (!image) {
+                image = $(el).closest('div').find('img').first().attr('src') || ''
             }
 
-            if (id && title) {
-                // On évite les doublons
+            // Nettoyage URL Image
+            if (image) {
+                if (image.startsWith('/')) image = DOMAIN + image
+                if (image.includes('url=')) {
+                    const match = image.match(/url=(.*?)&/)
+                    if (match) image = decodeURIComponent(match[1])
+                    if (image.startsWith('/')) image = DOMAIN + image
+                }
+            } else {
+                image = 'https://kagane.org/favicon.ico' // Image par défaut
+            }
+
+            if (id && title && title.length < 100) { // Sécurité longueur titre
                 if (!items.find(x => x.id === id)) {
                     items.push({ id, title, image })
                 }
@@ -72,23 +82,40 @@ export class Kagane extends Source {
     }
 
     async getHomePageSections(sectionCallback: (section: HomeSection) => void): Promise<void> {
-        const section = App.createHomeSection({ 
-            id: 'popular', 
-            title: 'Popular Manga', 
-            containsMoreItems: true, 
-            type: 'singleRowNormal' 
-        })
-        sectionCallback(section)
+        // SECTION 1 : POPULAR
+        const sectionPopular = App.createHomeSection({ id: 'popular', title: 'Popular Manga', containsMoreItems: true, type: 'singleRowNormal' })
+        
+        // SECTION 2 : LATEST (Souvent plus fiable)
+        const sectionLatest = App.createHomeSection({ id: 'latest', title: 'Latest Updates', containsMoreItems: true, type: 'singleRowNormal' })
+        
+        sectionCallback(sectionPopular)
+        sectionCallback(sectionLatest)
 
-        // STRATÉGIE 1 : L'API "Popular"
-        const apiRequest = App.createRequest({
-            url: `${API_URL}/series?sort=views&order=desc&page=1&take=20`,
+        // --- Remplissage Popular ---
+        // Essai API tri par 'views'
+        const requestPopular = App.createRequest({
+            url: `${API_URL}/series?sort=views&order=desc&page=1&take=10`,
+            method: 'GET',
+            headers: COMMON_HEADERS
+        })
+        
+        this.fetchSectionData(requestPopular, sectionPopular, sectionCallback)
+
+        // --- Remplissage Latest ---
+        // Essai API tri par 'last_modified' (Le plus sûr)
+        const requestLatest = App.createRequest({
+            url: `${API_URL}/series?sort=last_modified&order=desc&page=1&take=10`,
             method: 'GET',
             headers: COMMON_HEADERS
         })
 
+        this.fetchSectionData(requestLatest, sectionLatest, sectionCallback)
+    }
+
+    // Fonction d'aide pour éviter de répéter le code
+    async fetchSectionData(request: Request, section: HomeSection, callback: (section: HomeSection) => void) {
         try {
-            const response = await this.requestManager.schedule(apiRequest, 1)
+            const response = await this.requestManager.schedule(request, 1)
             let items: any[] = []
             
             try {
@@ -98,12 +125,10 @@ export class Kagane extends Source {
                 else if (json.series && Array.isArray(json.series)) items = json.series
             } catch (e) {}
 
-            // SI L'API EST VIDE -> STRATÉGIE 2 : HTML DU SITE
+            // FALLBACK HTML si l'API est vide
             if (items.length === 0) {
-                console.log('API vide, passage au mode HTML...')
                 const htmlRequest = App.createRequest({
-                    // On demande la page de recherche triée par vues (ou défaut)
-                    url: `${DOMAIN}/search?sort=views,desc`,
+                    url: `${DOMAIN}/search?sort=created_at,desc`, // Page de recherche standard
                     method: 'GET',
                     headers: COMMON_HEADERS
                 })
@@ -113,26 +138,29 @@ export class Kagane extends Source {
 
             const mangaList: any[] = []
             for (const item of items) {
+                if (!item.id) continue
+
                 let image = item.thumbnail || item.cover || item.image || ''
                 if (image && !image.startsWith('http')) {
                     image = `${DOMAIN}/_next/image?url=${encodeURIComponent(image)}&w=384&q=75`
+                } else if (!image) {
+                     image = 'https://kagane.org/favicon.ico'
                 }
 
-                if (item.id) {
-                    mangaList.push(App.createPartialSourceManga({
-                        mangaId: String(item.id),
-                        title: item.title || item.name || 'Unknown',
-                        image: image,
-                        subtitle: undefined
-                    }))
-                }
+                mangaList.push(App.createPartialSourceManga({
+                    mangaId: String(item.id),
+                    title: item.title || item.name || 'Unknown',
+                    image: image,
+                    subtitle: undefined
+                }))
             }
+            
             section.items = mangaList
-            sectionCallback(section)
+            callback(section)
 
         } catch (e) {
-            console.log(`Erreur globale Home: ${e}`)
-            sectionCallback(section) 
+            console.log(`Erreur Section ${section.id}: ${e}`)
+            callback(section)
         }
     }
 
@@ -159,6 +187,7 @@ export class Kagane extends Source {
                 image: image,
                 status: 'Ongoing',
                 desc: data.summary || data.description || '',
+                artist: data.authors ? data.authors.join(', ') : '',
                 tags: []
             })
         })
@@ -210,7 +239,6 @@ export class Kagane extends Source {
     }
 
     async getSearchResults(query: SearchRequest, metadata: any): Promise<PagedResults> {
-        // Recherche : On tente l'API
         const request = App.createRequest({
             url: `${API_URL}/series?search=${encodeURIComponent(query.title ?? '')}`,
             method: 'GET',
