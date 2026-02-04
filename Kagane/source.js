@@ -784,7 +784,7 @@ var _Sources = (() => {
         pages
       });
     }
-    // --- NOUVEAU : Parsing des résultats de recherche ---
+    // --- Parsing des résultats de recherche / Accueil ---
     parseSearchResults(json) {
       const results = [];
       const list = json.data || json;
@@ -806,7 +806,7 @@ var _Sources = (() => {
   var KAGANE_API = "https://api.kagane.org/api/v1";
   var KAGANE_DOMAIN = "https://kagane.org";
   var KaganeInfo = {
-    version: "1.0.4",
+    version: "1.0.5",
     name: "Kagane",
     icon: "icon.png",
     author: "Toi",
@@ -858,7 +858,7 @@ var _Sources = (() => {
       const json = JSON.parse(response.data ?? "{}");
       return this.parser.parseChapterDetails(json, mangaId, chapterId);
     }
-    // --- NOUVEAU : Recherche ---
+    // --- Recherche ---
     async getSearchResults(query, metadata) {
       let url = `${KAGANE_API}/series`;
       if (query.title) {
@@ -871,6 +871,31 @@ var _Sources = (() => {
       const response = await this.requestManager.schedule(request, 1);
       const json = JSON.parse(response.data ?? "[]");
       return this.parser.parseSearchResults(json);
+    }
+    // --- Page d'accueil (Sections) ---
+    async getHomePageSections(sectionCallback) {
+      const sectionPopular = App.createHomeSection({ id: "popular", title: "Popular Today", containsMoreItems: true, type: "singleRowLarge" });
+      const sectionLatest = App.createHomeSection({ id: "latest", title: "Latest Series", containsMoreItems: true, type: "singleRowNormal" });
+      sectionCallback(sectionPopular);
+      sectionCallback(sectionLatest);
+      const requestPopular = App.createRequest({
+        url: `${KAGANE_API}/series?sort=avg_views_today,desc`,
+        method: "GET"
+      });
+      const responsePopular = await this.requestManager.schedule(requestPopular, 1);
+      const jsonPopular = JSON.parse(responsePopular.data ?? "[]");
+      const popularResults = this.parser.parseSearchResults(jsonPopular);
+      sectionPopular.items = popularResults.results;
+      sectionCallback(sectionPopular);
+      const requestLatest = App.createRequest({
+        url: `${KAGANE_API}/series`,
+        method: "GET"
+      });
+      const responseLatest = await this.requestManager.schedule(requestLatest, 1);
+      const jsonLatest = JSON.parse(responseLatest.data ?? "[]");
+      const latestResults = this.parser.parseSearchResults(jsonLatest);
+      sectionLatest.items = latestResults.results;
+      sectionCallback(sectionLatest);
     }
   };
   return __toCommonJS(Kagane_exports);
