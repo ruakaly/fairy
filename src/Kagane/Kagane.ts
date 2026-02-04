@@ -24,7 +24,7 @@ const COMMON_HEADERS = {
 
 export const KaganeInfo: SourceInfo = {
     version: '1.0.4',
-    name: 'KaganeComic',
+    name: 'Kagane',
     icon: 'icon.png',
     author: 'Toi',
     authorWebsite: 'https://github.com/ruanadia',
@@ -33,7 +33,7 @@ export const KaganeInfo: SourceInfo = {
     websiteBaseURL: DOMAIN
 }
 
-export class KaganeComic extends Source {
+export class Kagane extends Source {
     // ✅ CORRECTION : On supprime le bloc "interceptor" qui causait l'erreur
     requestManager = App.createRequestManager({
         requestsPerSecond: 3,
