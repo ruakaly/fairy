@@ -735,11 +735,11 @@ var _Sources = (() => {
     }
   });
 
-  // src/Kagane/Kagane.ts
-  var Kagane_exports = {};
-  __export(Kagane_exports, {
-    Kagane: () => Kagane,
-    KaganeInfo: () => KaganeInfo
+  // src/KaganeComic/KaganeComic.ts
+  var KaganeComic_exports = {};
+  __export(KaganeComic_exports, {
+    KaganeComic: () => KaganeComic,
+    KaganeComicInfo: () => KaganeComicInfo
   });
   var import_types2 = __toESM(require_lib());
 
@@ -14924,16 +14924,16 @@ var _Sources = (() => {
   var { parseHTML: parseHTML2 } = static_exports;
   var { root: root2 } = static_exports;
 
-  // src/Kagane/Kagane.ts
+  // src/KaganeComic/KaganeComic.ts
   var DOMAIN = "https://kagane.org";
   var COMMON_HEADERS = {
     "Referer": DOMAIN,
     "Origin": DOMAIN,
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   };
-  var KaganeInfo = {
+  var KaganeComicInfo = {
     version: "1.0.1",
-    name: "Kagane",
+    name: "KaganeComic",
     icon: "icon.png",
     author: "Toi",
     authorWebsite: "https://github.com/ruanadia",
@@ -14941,7 +14941,7 @@ var _Sources = (() => {
     contentRating: import_types2.ContentRating.MATURE,
     websiteBaseURL: DOMAIN
   };
-  var Kagane = class extends import_types2.Source {
+  var KaganeComic = class extends import_types2.Source {
     constructor() {
       super(...arguments);
       // Correction : On enlève l'intercepteur ici pour éviter l'erreur de type
@@ -15091,6 +15091,6 @@ var _Sources = (() => {
       sectionCallback(section);
     }
   };
-  return __toCommonJS(Kagane_exports);
+  return __toCommonJS(KaganeComic_exports);
 })();
 this.Sources = _Sources; if (typeof exports === 'object' && typeof module !== 'undefined') {module.exports.Sources = this.Sources;}
