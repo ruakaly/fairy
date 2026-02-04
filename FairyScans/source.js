@@ -14927,12 +14927,13 @@ var _Sources = (() => {
   // src/FairyScans/FairyScans.ts
   var DOMAIN = "https://fairyscans.com";
   var FairyScansInfo = {
-    version: "1.0.1",
+    version: "1.0.8",
+    // J'ai monté la version pour l'update
     name: "FairyScans",
     icon: "icon.png",
     author: "Toi",
     authorWebsite: "https://github.com/ruanadia",
-    description: "Extension pour lire FairyScans sur Paperback",
+    description: "Extension Paperback pour FairyScans",
     contentRating: import_types2.ContentRating.MATURE,
     websiteBaseURL: DOMAIN
   };
@@ -14987,11 +14988,10 @@ var _Sources = (() => {
         const time = new Date(timeStr);
         chapters.push(App.createChapter({
           id,
-          // L'ID est l'URL relative (ex: /manga/titre/chapitre-1/)
           chapNum,
           name: title,
-          langCode: "fr",
-          // Ou 'en' selon le contenu
+          langCode: "en",
+          // FairyScans semble être en anglais principalement
           time: isNaN(time.getTime()) ? /* @__PURE__ */ new Date() : time
         }));
       }
@@ -15046,38 +15046,52 @@ var _Sources = (() => {
       });
     }
     async getHomePageSections(sectionCallback) {
-      const section = App.createHomeSection({
-        id: "latest",
-        title: "Derniers Ajouts",
-        containsMoreItems: true,
-        type: "singleRowNormal"
-      });
-      sectionCallback(section);
+      const sectionPopular = App.createHomeSection({ id: "popular_today", title: "Popular Today", containsMoreItems: false, type: "singleRowLarge" });
+      const sectionSeries = App.createHomeSection({ id: "popular_series", title: "Popular Series", containsMoreItems: false, type: "singleRowNormal" });
+      const sectionLatest = App.createHomeSection({ id: "latest_update", title: "Latest Update", containsMoreItems: true, type: "singleRowNormal" });
+      sectionCallback(sectionPopular);
+      sectionCallback(sectionSeries);
+      sectionCallback(sectionLatest);
       const request = App.createRequest({
         url: DOMAIN,
         method: "GET"
       });
       const response = await this.requestManager.schedule(request, 1);
       const $2 = load(response.data ?? "");
-      const mangaList = [];
-      const items = $2(".listupd .bsx");
-      for (const item of items) {
-        const link = $2(item).find("a").first();
-        const title = link.attr("title") ?? $2(item).find(".tt").text().trim();
+      const popularItems = [];
+      for (const item of $2(".popularslider .bsx").toArray()) {
+        const id = $2(item).find("a").attr("href")?.split("/manga/")[1]?.replace(/\/$/, "");
+        const title = $2(item).find("a").attr("title");
         const image = $2(item).find("img").attr("src") ?? "";
-        const href = link.attr("href");
-        const id = href?.split("/manga/")[1]?.replace(/\/$/, "");
         if (id && title) {
-          mangaList.push(App.createPartialSourceManga({
-            mangaId: id,
-            title,
-            image,
-            subtitle: void 0
-          }));
+          popularItems.push(App.createPartialSourceManga({ mangaId: id, title, image, subtitle: void 0 }));
         }
       }
-      section.items = mangaList;
-      sectionCallback(section);
+      sectionPopular.items = popularItems;
+      sectionCallback(sectionPopular);
+      const seriesItems = [];
+      for (const item of $2(".serieslist.pop ul li").toArray()) {
+        const link = $2(item).find(".leftseries h2 a");
+        const id = link.attr("href")?.split("/manga/")[1]?.replace(/\/$/, "");
+        const title = link.text().trim();
+        const image = $2(item).find(".imgseries img").attr("src") ?? "";
+        if (id && title) {
+          seriesItems.push(App.createPartialSourceManga({ mangaId: id, title, image, subtitle: void 0 }));
+        }
+      }
+      sectionSeries.items = seriesItems;
+      sectionCallback(sectionSeries);
+      const latestItems = [];
+      for (const item of $2(".postbody .listupd .bsx").toArray()) {
+        const id = $2(item).find("a").attr("href")?.split("/manga/")[1]?.replace(/\/$/, "");
+        const title = $2(item).find("a").attr("title");
+        const image = $2(item).find("img").attr("src") ?? "";
+        if (id && title) {
+          latestItems.push(App.createPartialSourceManga({ mangaId: id, title, image, subtitle: void 0 }));
+        }
+      }
+      sectionLatest.items = latestItems;
+      sectionCallback(sectionLatest);
     }
   };
   return __toCommonJS(FairyScans_exports);
