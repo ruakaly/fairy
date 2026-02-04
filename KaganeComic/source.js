@@ -724,7 +724,7 @@ var _Sources = (() => {
   // src/KaganeComic/KaganeComic.ts
   var KaganeComic_exports = {};
   __export(KaganeComic_exports, {
-    Kagane: () => Kagane,
+    KaganeComic: () => KaganeComic,
     KaganeInfo: () => KaganeInfo
   });
   var import_types = __toESM(require_lib());
@@ -736,7 +736,7 @@ var _Sources = (() => {
   };
   var KaganeInfo = {
     version: "1.0.4",
-    name: "Kagane",
+    name: "KaganeComic",
     icon: "icon.png",
     author: "Toi",
     authorWebsite: "https://github.com/ruanadia",
@@ -744,7 +744,7 @@ var _Sources = (() => {
     contentRating: import_types.ContentRating.MATURE,
     websiteBaseURL: DOMAIN
   };
-  var Kagane = class extends import_types.Source {
+  var KaganeComic = class extends import_types.Source {
     constructor() {
       super(...arguments);
       // ✅ CORRECTION : On supprime le bloc "interceptor" qui causait l'erreur
