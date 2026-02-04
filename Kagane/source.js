@@ -721,10 +721,10 @@ var _Sources = (() => {
     }
   });
 
-  // src/KaganeComic/KaganeComic.ts
-  var KaganeComic_exports = {};
-  __export(KaganeComic_exports, {
-    KaganeComic: () => KaganeComic,
+  // src/Kagane/Kagane.ts
+  var Kagane_exports = {};
+  __export(Kagane_exports, {
+    Kagane: () => Kagane,
     KaganeInfo: () => KaganeInfo
   });
   var import_types = __toESM(require_lib());
@@ -736,7 +736,7 @@ var _Sources = (() => {
   };
   var KaganeInfo = {
     version: "1.0.4",
-    name: "KaganeComic",
+    name: "Kagane",
     icon: "icon.png",
     author: "Toi",
     authorWebsite: "https://github.com/ruanadia",
@@ -744,7 +744,7 @@ var _Sources = (() => {
     contentRating: import_types.ContentRating.MATURE,
     websiteBaseURL: DOMAIN
   };
-  var KaganeComic = class extends import_types.Source {
+  var Kagane = class extends import_types.Source {
     constructor() {
       super(...arguments);
       // ✅ CORRECTION : On supprime le bloc "interceptor" qui causait l'erreur
@@ -885,6 +885,6 @@ var _Sources = (() => {
       return App.createPagedResults({ results: tiles });
     }
   };
-  return __toCommonJS(KaganeComic_exports);
+  return __toCommonJS(Kagane_exports);
 })();
 this.Sources = _Sources; if (typeof exports === 'object' && typeof module !== 'undefined') {module.exports.Sources = this.Sources;}
