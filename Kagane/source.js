@@ -736,13 +736,13 @@ var _Sources = (() => {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
   };
   var KaganeInfo = {
-    version: "1.0.9",
-    // 👈 ON PASSE EN 1.1.0 POUR FORCER L'UPDATE
+    version: "1.2.0",
+    // 🚀 GRAND SAUT DE VERSION
     name: "Kagane",
     icon: "icon.png",
     author: "Toi",
     authorWebsite: "https://github.com/ruanadia",
-    description: "Extension pour Kagane.org",
+    description: "Extension API pour Kagane.org",
     contentRating: import_types.ContentRating.MATURE,
     websiteBaseURL: DOMAIN
   };
@@ -754,7 +754,8 @@ var _Sources = (() => {
         requestTimeout: 15e3
       });
     }
-    // 👇 RETOUR A LA SYNTAXE STANDARD (Plus fiable pour l'héritage Paperback)
+    // --- APPROCHE CLASSIQUE (STYLE FAIRYSCANS) ---
+    // On déclare la méthode exactement comme dans la définition de type de Paperback
     async getHomePageSections(sectionCallback) {
       const section = App.createHomeSection({
         id: "latest",
@@ -771,33 +772,31 @@ var _Sources = (() => {
       try {
         const response = await this.requestManager.schedule(request, 1);
         let items = [];
-        const json = JSON.parse(response.data ?? "{}");
-        if (Array.isArray(json)) {
-          items = json;
-        } else if (json.data && Array.isArray(json.data)) {
-          items = json.data;
-        } else if (json.series && Array.isArray(json.series)) {
-          items = json.series;
+        try {
+          const json = JSON.parse(response.data ?? "{}");
+          if (Array.isArray(json)) items = json;
+          else if (json.data && Array.isArray(json.data)) items = json.data;
+          else if (json.series && Array.isArray(json.series)) items = json.series;
+        } catch (e) {
         }
         const mangaList = [];
         for (const item of items) {
+          if (!item.id || !item.title && !item.name) continue;
           let image = item.thumbnail || item.cover || "";
           if (image && !image.startsWith("http")) {
             image = `${DOMAIN}/_next/image?url=${encodeURIComponent(image)}&w=384&q=75`;
           }
-          if (item.id) {
-            mangaList.push(App.createPartialSourceManga({
-              mangaId: String(item.id),
-              title: item.title || item.name || "Unknown",
-              image,
-              subtitle: void 0
-            }));
-          }
+          mangaList.push(App.createPartialSourceManga({
+            mangaId: String(item.id),
+            title: item.title || item.name || "Unknown",
+            image,
+            subtitle: void 0
+          }));
         }
         section.items = mangaList;
         sectionCallback(section);
       } catch (e) {
-        console.log(`Erreur Home: ${e}`);
+        console.log(`Kagane Error: ${e}`);
         sectionCallback(section);
       }
     }
@@ -817,12 +816,11 @@ var _Sources = (() => {
       return App.createSourceManga({
         id: mangaId,
         mangaInfo: App.createMangaInfo({
-          titles: [data.title || data.name || "Titre Inconnu"],
+          titles: [data.title || data.name || "Unknown"],
           image,
-          status: data.status === "ONGOING" ? "Ongoing" : "Completed",
+          status: "Ongoing",
           desc: data.summary || data.description || "",
-          artist: data.authors ? data.authors.join(", ") : "",
-          tags: data.metadata?.genres || []
+          tags: []
         })
       });
     }
@@ -835,14 +833,14 @@ var _Sources = (() => {
       const response = await this.requestManager.schedule(request, 1);
       const json = JSON.parse(response.data ?? "{}");
       const chapters = [];
-      const rawChapters = json.books || json.chapters || json.data?.books || [];
-      for (const item of rawChapters) {
+      const list = json.books || json.chapters || json.data?.books || [];
+      for (const item of list) {
         chapters.push(App.createChapter({
           id: String(item.id),
-          chapNum: Number(item.chapterNumber || item.number || item.sequenceNumber || 0),
-          name: item.title || item.name || `Chapter ${item.number}`,
+          chapNum: Number(item.chapterNumber || 0),
+          name: item.title || `Chapter ${item.chapterNumber}`,
           langCode: "en",
-          time: item.createdAt ? new Date(item.createdAt) : /* @__PURE__ */ new Date()
+          time: /* @__PURE__ */ new Date()
         }));
       }
       return chapters;
@@ -856,16 +854,8 @@ var _Sources = (() => {
       const response = await this.requestManager.schedule(request, 1);
       const json = JSON.parse(response.data ?? "{}");
       let pages = [];
-      if (Array.isArray(json)) {
-        pages = json;
-      } else if (Array.isArray(json.images)) {
-        pages = json.images;
-      } else if (Array.isArray(json.pages)) {
-        pages = json.pages;
-      } else if (Array.isArray(json.data)) {
-        pages = json.data;
-      }
-      pages = pages.map((img) => typeof img === "string" ? img : img.url);
+      const list = Array.isArray(json) ? json : json.images || json.data || [];
+      pages = list.map((x) => typeof x === "string" ? x : x.url);
       return App.createChapterDetails({
         id: chapterId,
         mangaId,
@@ -874,7 +864,7 @@ var _Sources = (() => {
     }
     async getSearchResults(query, metadata) {
       const request = App.createRequest({
-        url: `${API_URL}/series?search=${encodeURIComponent(query.title ?? "")}&take=20`,
+        url: `${API_URL}/series?search=${encodeURIComponent(query.title ?? "")}`,
         method: "GET",
         headers: COMMON_HEADERS
       });
@@ -884,9 +874,7 @@ var _Sources = (() => {
       const list = json.data || json.series || [];
       for (const item of list) {
         let image = item.thumbnail || "";
-        if (image && !image.startsWith("http")) {
-          image = `${DOMAIN}/_next/image?url=${encodeURIComponent(image)}&w=384&q=75`;
-        }
+        if (image && !image.startsWith("http")) image = `${DOMAIN}/_next/image?url=${encodeURIComponent(image)}`;
         tiles.push(App.createPartialSourceManga({
           mangaId: String(item.id),
           title: item.title || item.name,
