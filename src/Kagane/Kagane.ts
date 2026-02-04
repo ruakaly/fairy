@@ -41,8 +41,7 @@ export class Kagane extends Source {
     // --- CORRECTION MAJEURE ICI ---
     // On s'assure que la fonction est bien déclarée comme async et retourne Promise<void>
     // C'est exactement le format standard
-    async getHomePageSections(sectionCallback: (section: HomeSection) => void): Promise<void> {
-        
+getHomePageSections = async (sectionCallback: (section: HomeSection) => void): Promise<void> => {        
         // 1. On crée la section VIDE d'abord (pour que l'UI réagisse vite)
         const section = App.createHomeSection({ 
             id: 'latest', 
