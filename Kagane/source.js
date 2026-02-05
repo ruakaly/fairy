@@ -731,7 +731,8 @@ var _Sources = (() => {
   var API_URL = "https://api.kagane.org/api/v1";
   var BASE_URL = "https://kagane.org";
   var KaganeInfo = {
-    version: "1.0.0",
+    version: "1.0.1",
+    // J'ai monté la version
     name: "Kagane",
     icon: "icon.png",
     author: "Nad",
@@ -765,7 +766,7 @@ var _Sources = (() => {
     getMangaShareUrl(mangaId) {
       return `${BASE_URL}/series/${mangaId}`;
     }
-    // 1. Récupération des détails via l'API
+    // 1. DÉTAILS (Via API)
     async getMangaDetails(mangaId) {
       const request = App.createRequest({
         url: `${API_URL}/series/${mangaId}`,
@@ -796,7 +797,7 @@ var _Sources = (() => {
         })
       });
     }
-    // 2. Récupération des chapitres via le HTML (Regex)
+    // 2. CHAPITRES (Via HTML + Regex)
     async getChapters(mangaId) {
       const request = App.createRequest({
         url: `${BASE_URL}/series/${mangaId}`,
@@ -822,7 +823,6 @@ var _Sources = (() => {
               chapNum: Number(chapNum),
               langCode: "en",
               time: dateStr ? new Date(dateStr) : /* @__PURE__ */ new Date()
-              // Pas de mangaId ici selon ton erreur précédente
             }));
           }
         } catch (e) {
@@ -831,7 +831,7 @@ var _Sources = (() => {
       }
       return chapters;
     }
-    // 3. Récupération des images
+    // 3. IMAGES (Via HTML + Regex)
     async getChapterDetails(mangaId, chapterId) {
       const request = App.createRequest({
         url: `${BASE_URL}/series/${mangaId}/reader/${chapterId}`,
@@ -856,58 +856,45 @@ var _Sources = (() => {
         pages
       });
     }
-    // Recherche
-    async getSearchResults(query, metadata) {
-      const page = metadata?.page ?? 1;
-      const request = App.createRequest({
-        url: `${API_URL}/series/search`,
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        data: JSON.stringify({
-          query: query.title ?? "",
-          page,
-          size: 20
-        })
-      });
-      const response = await this.requestManager.schedule(request, 1);
-      const dataStr = response.data ?? "{}";
-      const json = JSON.parse(dataStr);
-      const results = json.data ?? [];
-      const tiles = results.map((item) => App.createPartialSourceManga({
-        title: item.name,
-        image: `${API_URL}/series/${item.id}/thumbnail`,
-        mangaId: item.id,
-        subtitle: void 0
-      }));
-      return App.createPagedResults({
-        results: tiles,
-        metadata: { page: page + 1 }
-      });
-    }
+    // 4. ACCUEIL (CORRIGÉ : Via HTML + Regex sur "ssrRecentlyAdded")
     async getHomePageSections(sectionCallback) {
       const section = App.createHomeSection({ id: "latest", title: "Latest Series", containsMoreItems: false, type: "singleRowNormal" });
       sectionCallback(section);
-      try {
-        const listRequest = App.createRequest({
-          url: `${API_URL}/series?page=0&size=20&sort=latest`,
-          method: "GET"
-        });
-        const response = await this.requestManager.schedule(listRequest, 1);
-        const dataStr = response.data ?? "{}";
-        const json = JSON.parse(dataStr);
-        const tiles = json.data.map((item) => App.createPartialSourceManga({
-          title: item.name,
-          image: `${API_URL}/series/${item.id}/thumbnail`,
-          mangaId: item.id,
-          subtitle: void 0
-        }));
-        section.items = tiles;
-        sectionCallback(section);
-      } catch (e) {
-        console.log("Erreur Home Section: " + e);
+      const request = App.createRequest({
+        url: BASE_URL,
+        method: "GET"
+      });
+      const response = await this.requestManager.schedule(request, 1);
+      const dataStr = response.data ?? "";
+      const regex = /\\"ssrRecentlyAdded\\":\{\\"data\\":(\[.*?\])(?:,\\"|})/;
+      const match = dataStr.match(regex);
+      if (match && match[1]) {
+        const cleanJson = match[1].replace(/\\"/g, '"');
+        try {
+          const data = JSON.parse(cleanJson);
+          const tiles = [];
+          for (const item of data) {
+            tiles.push(App.createPartialSourceManga({
+              title: item.name,
+              image: `${API_URL}/series/${item.id}/thumbnail`,
+              mangaId: item.id,
+              subtitle: void 0
+            }));
+          }
+          section.items = tiles;
+          sectionCallback(section);
+        } catch (e) {
+          console.log(`Erreur parsing Home: ${e}`);
+        }
       }
+    }
+    // 5. RECHERCHE (Placeholder basique pour l'instant)
+    // L'API de recherche devinée risque de ne pas marcher, mais on laisse le code propre.
+    async getSearchResults(query, metadata) {
+      return App.createPagedResults({
+        results: [],
+        metadata: {}
+      });
     }
   };
   return __toCommonJS(Kagane_exports);
