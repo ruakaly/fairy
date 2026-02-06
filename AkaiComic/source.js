@@ -827,36 +827,49 @@ var _Sources = (() => {
         metadata: { page: page + 1 }
       });
     }
-    // Remplace toute la méthode getHomePageSections par celle-ci
     async getHomePageSections(sectionCallback) {
-      const sectionRecent = App.createHomeSection({ id: "recent", title: "Recently Updated", containsMoreItems: true, type: "singleRowNormal" });
-      const sectionTop = App.createHomeSection({ id: "top", title: "Top Series", containsMoreItems: false, type: "singleRowLarge" });
-      sectionCallback(sectionRecent);
-      sectionCallback(sectionTop);
-      const recentReq = App.createRequest({
+      const sectionPopular = App.createHomeSection({ id: "popular", title: "Most Popular", containsMoreItems: false, type: "singleRowLarge" });
+      const sectionNew = App.createHomeSection({ id: "new", title: "New Series", containsMoreItems: false, type: "singleRowNormal" });
+      const sectionUpdates = App.createHomeSection({ id: "updates", title: "Latest Updates", containsMoreItems: true, type: "singleRowNormal" });
+      sectionCallback(sectionPopular);
+      sectionCallback(sectionNew);
+      sectionCallback(sectionUpdates);
+      const popularReq = App.createRequest({
+        url: `${API_BASE}/series/top?limit=6`,
+        method: "GET"
+      });
+      const popularRes = await this.requestManager.schedule(popularReq, 1);
+      const popularData = JSON.parse(popularRes.data ?? "{}");
+      sectionPopular.items = (popularData.series ?? []).map((m) => App.createPartialSourceManga({
+        mangaId: m.id,
+        image: m.cover_url,
+        title: m.series_name
+      }));
+      sectionCallback(sectionPopular);
+      const newReq = App.createRequest({
+        url: `${API_BASE}/manga/list?limit=10&page=1&sort=created_at`,
+        method: "GET"
+      });
+      const newRes = await this.requestManager.schedule(newReq, 1);
+      const newData = JSON.parse(newRes.data ?? "{}");
+      sectionNew.items = (newData.manga ?? []).map((m) => App.createPartialSourceManga({
+        mangaId: m.id,
+        image: m.cover_url,
+        title: m.series_name
+      }));
+      sectionCallback(sectionNew);
+      const updatesReq = App.createRequest({
         url: `${API_BASE}/manga/recent?limit=10&page=1`,
         method: "GET"
       });
-      const recentResponse = await this.requestManager.schedule(recentReq, 1);
-      const recentData = JSON.parse(recentResponse.data ?? "{}");
-      sectionRecent.items = (recentData.manga ?? []).map((m) => App.createPartialSourceManga({
+      const updatesRes = await this.requestManager.schedule(updatesReq, 1);
+      const updatesData = JSON.parse(updatesRes.data ?? "{}");
+      sectionUpdates.items = (updatesData.manga ?? []).map((m) => App.createPartialSourceManga({
         mangaId: m.id,
         image: m.cover_url,
         title: m.series_name
       }));
-      sectionCallback(sectionRecent);
-      const topReq = App.createRequest({
-        url: `${DOMAIN}/api/series/top?limit=6`,
-        method: "GET"
-      });
-      const topResponse = await this.requestManager.schedule(topReq, 1);
-      const topData = JSON.parse(topResponse.data ?? "{}");
-      sectionTop.items = (topData.series ?? []).map((m) => App.createPartialSourceManga({
-        mangaId: m.id,
-        image: m.cover_url,
-        title: m.series_name
-      }));
-      sectionCallback(sectionTop);
+      sectionCallback(sectionUpdates);
     }
   };
   return __toCommonJS(AkaiComic_exports);
