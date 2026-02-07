@@ -15417,7 +15417,7 @@ var _Sources = (() => {
   // src/KingOfShojo/KingOfShojo.ts
   var DOMAIN = "https://kingofshojo.com";
   var KingOfShojoInfo = {
-    version: "1.0.0",
+    version: "1.0.1",
     name: "KingOfShojo",
     icon: "icon.png",
     author: "nadi \u{118F2}",
